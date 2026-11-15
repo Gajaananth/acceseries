@@ -58,7 +58,7 @@ app.use('*', cors({
     return allowedOrigins.includes(origin) ? origin : ''
   },
   allowHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
-  allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }))
 
 const customerSchema = z.object({

@@ -4,7 +4,7 @@ export type AuthUser = {
   id: string
   email: string
   name: string | null
-  role: 'owner' | 'staff'
+  role: 'owner'
   canManageProducts: boolean
   permissions: string[]
 }

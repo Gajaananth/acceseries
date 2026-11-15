@@ -139,7 +139,7 @@ export function ProductsPage({ search }: { search: string }) {
         queryClient.invalidateQueries({ queryKey: ['customers'] }),
       ])
       setDemoSeedOpen(false)
-      setNotice(`Demo data added: ${result.categories} categories, ${result.products} products with images, ${result.customers} customers.`)
+      setNotice(`Demo data ready: ${result.categories} categories, ${result.products} products with images, ${result.customers} customers, ${result.sales} sales, ${result.payments} payment, and ${result.discounts} discount requests.`)
     },
   })
   const archiveProduct = useMutation({
@@ -440,7 +440,7 @@ export function ProductsPage({ search }: { search: string }) {
           if (!demoSeed.isPending) setDemoSeedOpen(false)
         }}
         title="Load sample data"
-        description="Add five clearly labeled demo customers, four demo categories, and eight sample products with generated images and stock. Existing records are left unchanged; matching demo records are skipped."
+        description="Add five synthetic customers, four categories, eight illustrated products, two sales (including an overdue installment agreement), a partial payment, and discount requests. Existing records are left unchanged; demo records are reused on retries."
         footer={(
           <div className="flex min-w-0 justify-end gap-3">
             <button type="button" disabled={demoSeed.isPending} onClick={() => setDemoSeedOpen(false)} className="soft-button disabled:opacity-60">Cancel</button>

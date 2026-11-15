@@ -13,7 +13,6 @@ type ActivityLog = {
   user_id: string | null
   actor: string
 }
-type StaffMember = { id: string; email: string; full_name: string; created_at: string; permissions: string[] }
 
 function localDate(value: Date) {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
@@ -25,15 +24,12 @@ export function ActivityPage() {
     return localDate(new Date(today.getFullYear(), today.getMonth(), 1))
   })
   const [to, setTo] = useState(() => localDate(new Date()))
-  const [actorId, setActorId] = useState('')
   const [action, setAction] = useState('')
-  const staff = useQuery({ queryKey: ['staff'], queryFn: () => apiRequest<StaffMember[]>('/api/staff') })
   const query = useMemo(() => {
     const params = new URLSearchParams({ from, to })
-    if (actorId) params.set('actor_id', actorId)
     if (action.trim()) params.set('action', action.trim())
     return params.toString()
-  }, [from, to, actorId, action])
+  }, [from, to, action])
   const logs = useQuery({
     queryKey: ['activity-logs', query],
     queryFn: () => apiRequest<ActivityLog[]>(`/api/activity-logs?${query}`),
@@ -43,19 +39,12 @@ export function ActivityPage() {
   return (
     <div className="space-y-6">
       <PageHeading title="Activity log" description="Owner-only record of actions performed in the store." />
-      <section className="glass-panel grid min-w-0 gap-4 rounded-[26px] p-5 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="glass-panel grid min-w-0 gap-4 rounded-[26px] p-5 sm:grid-cols-2 xl:grid-cols-3">
         <label className="grid gap-1.5 text-sm font-medium text-slate-700">From<input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base" /></label>
         <label className="grid gap-1.5 text-sm font-medium text-slate-700">To<input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base" /></label>
-        <label className="grid gap-1.5 text-sm font-medium text-slate-700">Staff member
-          <select value={actorId} onChange={(event) => setActorId(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base">
-            <option value="">All users</option>
-            {staff.data?.map((member) => <option key={member.id} value={member.id}>{member.full_name || member.email}</option>)}
-          </select>
-        </label>
         <label className="grid gap-1.5 text-sm font-medium text-slate-700">Exact action<input value={action} onChange={(event) => setAction(event.target.value)} maxLength={100} placeholder="e.g. sale.created" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base" /></label>
       </section>
       {from > to && <p role="alert" className="text-sm text-red-700">Choose a valid date range.</p>}
-      {staff.isError && <ErrorMessage message={staff.error.message} />}
       {logs.isPending && <div className="h-52 animate-pulse rounded-[26px] bg-slate-200" />}
       {logs.isError && <ErrorMessage message={logs.error.message} />}
       {logs.data && (

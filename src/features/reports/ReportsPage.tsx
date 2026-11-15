@@ -14,7 +14,6 @@ const reportOptions = [
   ['collections', 'Collections'],
   ['inventory', 'Inventory valuation'],
   ['low_stock', 'Low stock'],
-  ['staff', 'Staff performance'],
   ['discounts', 'Discount approvals'],
   ['expenses', 'Expenses'],
   ['profit', 'Estimated profit'],

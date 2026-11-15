@@ -25,7 +25,7 @@ type ApiUser = {
   id: string
   email: string
   name: string | null
-  role: 'owner' | 'staff'
+  role: 'owner'
   canManageProducts: boolean
   permissions: string[]
 }
@@ -33,7 +33,7 @@ type ApiUser = {
 type Variables = {
   supabase: SupabaseClient
   userId: string
-  role: 'owner' | 'staff'
+  role: 'owner'
   canManageProducts: boolean
   permissions: string[]
   apiUser: ApiUser
@@ -43,24 +43,12 @@ const app = new Hono<{ Bindings: Env; Variables: Variables }>()
 
 const reportTypes = [
   'sales', 'balances', 'late_fees', 'overdue', 'collections',
-  'inventory', 'low_stock', 'staff', 'discounts', 'expenses', 'profit',
-] as const
-const staffPermissionKeys = [
-  'customers:read', 'customers:write', 'products:read', 'products:write',
-  'sales:read', 'sales:create', 'agreements:read', 'agreements:create',
-  'payments:read', 'payments:write', 'receipts:print',
-  'reports:sales', 'reports:balances', 'reports:late_fees', 'reports:overdue',
-  'reports:collections', 'reports:inventory', 'reports:low_stock', 'reports:staff',
-  'reports:discounts', 'reports:expenses', 'reports:profit',
+  'inventory', 'low_stock', 'discounts', 'expenses', 'profit',
 ] as const
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
   const date = new Date(`${value}T00:00:00.000Z`)
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
 })
-const staffPermissionListSchema = z.array(z.enum(staffPermissionKeys))
-  .max(staffPermissionKeys.length)
-  .refine((permissions) => new Set(permissions).size === permissions.length)
-
 app.use('*', cors({
   origin: (origin, context) => {
     const allowedOrigins = (context.env.ALLOWED_ORIGINS ?? '')
@@ -232,12 +220,6 @@ const earlySettlementApprovalSchema = z.object({
 
 const lateFeeWaiverSchema = z.object({
   reason: z.string().trim().min(2).max(500),
-})
-
-const staffInviteSchema = z.object({
-  full_name: z.string().trim().min(2).max(200),
-  email: z.string().trim().email().max(254),
-  permissions: staffPermissionListSchema,
 })
 
 const reportQuerySchema = z.object({
@@ -487,45 +469,31 @@ app.use('/api/*', async (c, next) => {
   }
   if (!profile) return c.json({ error: 'Your account does not have an assigned profile.' }, 403)
   const roleRecord = profile.roles as { name?: string } | null
-  if (roleRecord?.name !== 'owner' && roleRecord?.name !== 'staff') {
-    return c.json({ error: 'Your account role is not valid.' }, 403)
+  if (roleRecord?.name !== 'owner') {
+    return c.json({ error: 'This application is limited to the main admin account.' }, 403)
   }
-  const role = roleRecord.name
-  const [rolePermissions, permissionOverrides] = await Promise.all([
-    supabase
+  const role = 'owner'
+  const { data: rolePermissions, error: permissionsError } = await supabase
     .from('role_permissions')
     .select('permissions(key)')
-      .eq('role_id', profile.role_id),
-    supabase
-      .from('user_permissions')
-      .select('granted, permissions(key)')
-      .eq('user_id', data.user.id),
-  ])
-  const permissionsError = rolePermissions.error ?? permissionOverrides.error
+    .eq('role_id', profile.role_id)
   if (permissionsError) {
     console.error('Permission lookup failed', permissionsError.message)
     return c.json({ error: 'Unable to load your account permissions.' }, 502)
   }
-  const permissionKeys = new Set((rolePermissions.data ?? []).map((row) => {
+  const permissionKeys = new Set((rolePermissions ?? []).map((row) => {
     const permission = row.permissions as { key?: string } | null
     return permission?.key
   }).filter((key): key is string => typeof key === 'string'))
-  if (role !== 'owner') {
-    for (const row of permissionOverrides.data ?? []) {
-      const permission = row.permissions as { key?: string } | null
-      const key = permission?.key
-      if (typeof key !== 'string') continue
-      if (row.granted) permissionKeys.add(key)
-      else permissionKeys.delete(key)
-    }
-  }
+  permissionKeys.delete('staff:manage')
+  permissionKeys.delete('reports:staff')
   const effectivePermissions = [...permissionKeys]
   const apiUser: ApiUser = {
     id: data.user.id,
     email: data.user.email ?? '',
     name: typeof profile.full_name === 'string' ? profile.full_name : null,
     role,
-    canManageProducts: role === 'owner' || permissionKeys.has('products:write'),
+    canManageProducts: true,
     permissions: effectivePermissions,
   }
   c.set('supabase', supabase)
@@ -615,85 +583,6 @@ app.get('/api/reports', async (c) => {
     return c.json({ error: 'Unable to verify report data.' }, 502)
   }
   return c.json(parsedReport.data)
-})
-
-app.get('/api/staff', async (c) => {
-  if (!isOwner(c.get('role'))) return c.json({ error: 'Only an owner can manage staff.' }, 403)
-  const { data, error } = await c.get('supabase').rpc('get_managed_staff')
-  if (error || !data) {
-    console.error('Staff query failed', error?.message ?? 'No staff records returned')
-    return c.json({ error: 'Unable to load staff accounts.' }, 502)
-  }
-  const parsed = z.array(z.object({
-    id: z.string().uuid(),
-    email: z.string(),
-    full_name: z.string(),
-    created_at: z.string(),
-    permissions: z.array(z.string()),
-  })).safeParse(data)
-  if (!parsed.success) {
-    console.error('Staff RPC returned invalid data', parsed.error.message)
-    return c.json({ error: 'Unable to verify staff accounts.' }, 502)
-  }
-  return c.json(parsed.data)
-})
-
-app.post('/api/staff/invite', async (c) => {
-  if (!isOwner(c.get('role'))) return c.json({ error: 'Only an owner can invite staff.' }, 403)
-  const parsed = staffInviteSchema.safeParse(await c.req.json().catch(() => null))
-  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400)
-  if (!c.env.SUPABASE_URL || !c.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return c.json({ error: 'Staff invitations require a configured Worker service-role secret.' }, 503)
-  }
-  const serviceClient = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-  const { data, error } = await serviceClient.auth.admin.inviteUserByEmail(
-    parsed.data.email.toLowerCase(),
-    { data: { full_name: parsed.data.full_name } },
-  )
-  if (error || !data.user) {
-    console.error('Staff invitation failed', error?.message ?? 'No user returned')
-    const duplicate = error?.message.toLowerCase().includes('already') ?? false
-    return c.json({ error: duplicate ? 'An account with this email already exists.' : 'Unable to send the staff invitation.' }, duplicate ? 409 : 502)
-  }
-  const { error: permissionError } = await serviceClient.rpc('set_staff_permission_overrides', {
-    p_user_id: data.user.id,
-    p_permission_keys: parsed.data.permissions,
-    p_actor_user_id: c.get('userId'),
-  })
-  if (permissionError) {
-    console.error('Invited staff permission assignment failed', permissionError.message)
-    return c.json({ error: 'The invitation was sent, but permissions could not be saved. Reopen Staff and retry the assignment.' }, 502)
-  }
-  return c.json({ id: data.user.id, email: data.user.email ?? parsed.data.email.toLowerCase() }, 201)
-})
-
-app.put('/api/staff/:userId/permissions', async (c) => {
-  if (!isOwner(c.get('role'))) return c.json({ error: 'Only an owner can manage staff permissions.' }, 403)
-  const userId = z.string().uuid().safeParse(c.req.param('userId'))
-  if (!userId.success) return c.json({ error: 'Staff account ID is invalid.' }, 400)
-  const parsed = z.object({ permissions: staffPermissionListSchema })
-    .safeParse(await c.req.json().catch(() => null))
-  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400)
-  if (!c.env.SUPABASE_URL || !c.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return c.json({ error: 'Staff permission updates require a configured Worker service-role secret.' }, 503)
-  }
-  const serviceClient = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-  const { error } = await serviceClient.rpc('set_staff_permission_overrides', {
-    p_user_id: userId.data,
-    p_permission_keys: parsed.data.permissions,
-    p_actor_user_id: c.get('userId'),
-  })
-  if (error) {
-    const failure = transactionFailure(error)
-    if (failure.status !== 502) return c.json({ error: failure.error }, failure.status)
-    console.error('Staff permission update failed', error.message)
-    return c.json({ error: 'Unable to save staff permissions.' }, 502)
-  }
-  return c.json({ id: userId.data, permissions: parsed.data.permissions })
 })
 
 app.get('/api/activity-logs', async (c) => {

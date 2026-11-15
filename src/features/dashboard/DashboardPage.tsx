@@ -45,7 +45,6 @@ type DashboardData = {
     upcoming_dues: { id: string; customer_name: string; installment_number: number; due_date: string; amount_cents: number }[]
     overdue_customers: { customer_id: string; customer_name: string; phone: string; installment_count: number; amount_cents: number; oldest_due_date: string }[]
     low_stock: { id: string; name: string; quantity: number; min_stock: number }[]
-    staff_activity: { id: string; actor: string; action: string; entity_type: string; created_at: string }[]
   }
 }
 
@@ -57,7 +56,7 @@ const EMPTY_CHART_DATA: DashboardData['charts'] = {
 }
 const EMPTY_LISTS: DashboardData['lists'] = {
   recent_sales: [], recent_payments: [], upcoming_dues: [], overdue_customers: [],
-  low_stock: [], staff_activity: [],
+  low_stock: [],
 }
 
 const moneyTooltip = (value: unknown): string =>
@@ -103,7 +102,6 @@ export function DashboardPage() {
   const collectionChart = collectionPeriod === 'day'
     ? charts.collections_by_day
     : collectionPeriod === 'week' ? charts.collections_by_week : charts.collections_by_month
-  const canViewStaffActivity = user?.role === 'owner'
   const canViewSales = can('sales:read')
   const canViewPayments = can('payments:read')
   const canViewProducts = can('products:read', 'products:write')
@@ -227,13 +225,6 @@ export function DashboardPage() {
             <ListRow key={product.id} primary={product.name} secondary={`On hand ${product.quantity} · minimum ${product.min_stock}`} />
           ))}
         </DataList>}
-        {canViewStaffActivity && (
-          <DataList title="Staff activity" empty="No staff activity yet." href="/activity" linkLabel="Activity log">
-            {lists.staff_activity.map((activity) => (
-              <ListRow key={activity.id} primary={`${activity.actor} · ${activity.action}`} secondary={`${activity.entity_type} · ${new Date(activity.created_at).toLocaleString('en-LK')}`} />
-            ))}
-          </DataList>
-        )}
       </section>
     </div>
   )

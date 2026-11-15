@@ -6,6 +6,8 @@ type DemoCustomer = {
   phone: string
 }
 
+type DemoCustomerRecord = DemoCustomer & { id: string }
+
 type DemoProduct = {
   name: string
   sku: string
@@ -42,6 +44,9 @@ type DemoSeedResult = {
   categories: number
   customers: number
   products: number
+  sales: number
+  payments: number
+  discounts: number
 }
 
 function escapeXml(value: string): string {
@@ -76,11 +81,12 @@ async function createDemoImage(product: DemoProduct): Promise<File> {
   const objectUrl = URL.createObjectURL(new Blob([demoImageSvg(product)], { type: 'image/svg+xml' }))
   try {
     const image = new Image()
-    image.src = objectUrl
-    await new Promise<void>((resolve, reject) => {
+    const imageLoaded = new Promise<void>((resolve, reject) => {
       image.onload = () => resolve()
       image.onerror = () => reject(new Error('Unable to generate a sample product image.'))
     })
+    image.src = objectUrl
+    await imageLoaded
     const canvas = document.createElement('canvas')
     canvas.width = 600
     canvas.height = 450
@@ -112,16 +118,23 @@ function toProductFormValues(product: DemoProduct, categoryId: string): ProductF
   }
 }
 
+function postIdempotently<T>(path: string, key: string, payload: unknown): Promise<T> {
+  return apiRequest<T>(path, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Idempotency-Key': `acceseries-demo-v1-${key}` },
+  })
+}
+
 export async function seedDemoData(): Promise<DemoSeedResult> {
   const [existingCategories, existingProducts, existingCustomers] = await Promise.all([
     apiRequest<ProductCategory[]>('/api/categories'),
     apiRequest<Product[]>('/api/products?include_archived=true'),
-    apiRequest<DemoCustomer[]>('/api/customers'),
+    apiRequest<DemoCustomerRecord[]>('/api/customers'),
   ])
   const categoryIds = new Map(existingCategories.map((category) => [category.name.toLowerCase(), category.id]))
-  const existingSkus = new Set(existingProducts.map((product) => product.sku.toLowerCase()))
-  const existingPhones = new Set(existingCustomers.map((customer) => customer.phone))
-  const result: DemoSeedResult = { categories: 0, customers: 0, products: 0 }
+  const productsBySku = new Map(existingProducts.map((product) => [product.sku.toLowerCase(), product]))
+  const customersByPhone = new Map(existingCustomers.map((customer) => [customer.phone, customer]))
 
   for (const name of demoCategoryNames) {
     if (categoryIds.has(name.toLowerCase())) continue
@@ -130,20 +143,31 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
       body: JSON.stringify({ name }),
     })
     categoryIds.set(category.name.toLowerCase(), category.id)
-    result.categories += 1
   }
 
   for (const customer of demoCustomers) {
-    if (existingPhones.has(customer.phone)) continue
-    await apiRequest('/api/customers', {
+    const existing = customersByPhone.get(customer.phone)
+    if (existing) {
+      if (existing.full_name !== customer.full_name) {
+        throw new Error(`The sample phone number ${customer.phone} is already assigned to another customer.`)
+      }
+      continue
+    }
+    const created = await apiRequest<DemoCustomerRecord>('/api/customers', {
       method: 'POST',
       body: JSON.stringify(customer),
     })
-    result.customers += 1
+    customersByPhone.set(created.phone, created)
   }
 
   for (const product of demoProducts) {
-    if (existingSkus.has(product.sku.toLowerCase())) continue
+    const existing = productsBySku.get(product.sku.toLowerCase())
+    if (existing) {
+      if (existing.name !== product.name) {
+        throw new Error(`The sample SKU ${product.sku} is already assigned to another product.`)
+      }
+      continue
+    }
     const categoryId = categoryIds.get(product.category.toLowerCase())
     if (!categoryId) throw new Error(`Sample category "${product.category}" is unavailable.`)
     const values = toProductFormValues(product, categoryId)
@@ -157,8 +181,99 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
     }))
     formData.append('image', await createDemoImage(product))
     await apiRequest('/api/products', { method: 'POST', body: formData })
-    result.products += 1
   }
 
-  return result
+  const [seededProducts, seededCustomers] = await Promise.all([
+    apiRequest<Product[]>('/api/products?include_archived=true'),
+    apiRequest<DemoCustomerRecord[]>('/api/customers'),
+  ])
+  const sampleCustomerByPhone = new Map(seededCustomers.map((customer) => [customer.phone, customer]))
+  const sampleProductBySku = new Map(seededProducts.map((product) => [product.sku.toLowerCase(), product]))
+  const firstCustomer = sampleCustomerByPhone.get(demoCustomers[0].phone)
+  const secondCustomer = sampleCustomerByPhone.get(demoCustomers[1].phone)
+  const cashProduct = sampleProductBySku.get('demo-er-001')
+  const installmentProduct = sampleProductBySku.get('demo-ne-001')
+  if (!firstCustomer || !secondCustomer || !cashProduct || !installmentProduct) {
+    throw new Error('Sample customers or products could not be reloaded.')
+  }
+
+  const productDiscount = await postIdempotently<{ id: string }>('/api/discounts', 'product-discount', {
+    discount_type: 'product',
+    amount_cents: 10000,
+    reason: 'Demo product discount',
+    customer_id: null,
+    agreement_id: null,
+  })
+  await postIdempotently(`/api/discounts/${productDiscount.id}/approve`, 'product-discount-approval', {
+    reason: 'Approved for sample sale.',
+  })
+
+  const customerDiscount = await postIdempotently<{ id: string }>('/api/discounts', 'customer-discount', {
+    discount_type: 'customer',
+    amount_cents: 7500,
+    reason: 'Demo customer discount',
+    customer_id: secondCustomer.id,
+    agreement_id: null,
+  })
+  await postIdempotently(`/api/discounts/${customerDiscount.id}/approve`, 'customer-discount-approval', {
+    reason: 'Approved for sample installment sale.',
+  })
+
+  await postIdempotently('/api/discounts', 'pending-product-discount', {
+    discount_type: 'product',
+    amount_cents: 5000,
+    reason: 'Demo discount awaiting approval',
+    customer_id: null,
+    agreement_id: null,
+  })
+
+  await postIdempotently<{ id: string; agreement_id: string | null }>('/api/sales', 'cash-sale', {
+    customer_id: firstCustomer.id,
+    payment_type: 'cash',
+    discount_cents: 10000,
+    discount_type: 'product',
+    discount_request_id: productDiscount.id,
+    allow_negative_stock: false,
+    payment_method: 'cash',
+    items: [{ product_id: cashProduct.id, quantity: 1 }],
+  })
+
+  const installmentSale = await postIdempotently<{ id: string; agreement_id: string | null }>('/api/sales', 'installment-sale', {
+    customer_id: secondCustomer.id,
+    payment_type: 'installment',
+    discount_cents: 7500,
+    discount_type: 'customer',
+    discount_request_id: customerDiscount.id,
+    down_payment_cents: 50000,
+    fixed_interest_cents: 12000,
+    frequency: 'monthly',
+    installment_count: 4,
+    first_due_date: '2026-10-15',
+    payment_method: 'cash',
+    items: [{ product_id: installmentProduct.id, quantity: 1 }],
+  })
+  if (!installmentSale.agreement_id) throw new Error('The sample installment sale did not create an agreement.')
+
+  await postIdempotently('/api/payments', 'partial-payment', {
+    agreement_id: installmentSale.agreement_id,
+    amount_cents: 10000,
+    payment_method: 'cash',
+    reference: 'DEMO-PARTIAL-PAYMENT',
+  })
+  await postIdempotently('/api/discounts', 'early-settlement-discount', {
+    discount_type: 'early_settlement',
+    amount_cents: null,
+    reason: 'Demo early-settlement request awaiting approval',
+    customer_id: null,
+    agreement_id: installmentSale.agreement_id,
+  })
+
+  return {
+    categories: demoCategoryNames.length,
+    customers: demoCustomers.length,
+    products: demoProducts.length,
+    sales: 2,
+    payments: 1,
+    discounts: 4,
+  }
 }

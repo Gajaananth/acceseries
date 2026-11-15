@@ -15,7 +15,6 @@ import {
   ShoppingCart,
   Siren,
   Users,
-  UserRoundCog,
   Wallet,
   X,
 } from 'lucide-react'
@@ -34,7 +33,6 @@ import { PaymentCollectionPage } from './features/payments/PaymentCollectionPage
 import { LatePaymentsPage } from './features/late-payments/LatePaymentsPage'
 import { DiscountsPage } from './features/discounts/DiscountsPage'
 import { ReportsPage } from './features/reports/ReportsPage'
-import { StaffPage } from './features/staff/StaffPage'
 import { ActivityPage } from './features/activity/ActivityPage'
 import { NotificationMenu } from './features/notifications/NotificationMenu'
 
@@ -55,8 +53,7 @@ const navigation = [
   { label: 'Collections', to: '/collections', icon: Wallet, permissions: ['payments:read'] },
   { label: 'Late payments', to: '/late-payments', icon: Siren, permissions: ['payments:read'] },
   { label: 'Discounts', to: '/discounts', icon: Percent, permissions: ['discounts:read', 'discounts:request', 'discounts:approve'] },
-  { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined, permissions: ['reports:sales', 'reports:balances', 'reports:late_fees', 'reports:overdue', 'reports:collections', 'reports:inventory', 'reports:low_stock', 'reports:staff', 'reports:discounts', 'reports:expenses', 'reports:profit'] },
-  { label: 'Staff', to: '/staff', icon: UserRoundCog, ownerOnly: true },
+  { label: 'Reports', to: '/reports', icon: ChartNoAxesCombined, permissions: ['reports:sales', 'reports:balances', 'reports:late_fees', 'reports:overdue', 'reports:collections', 'reports:inventory', 'reports:low_stock', 'reports:discounts', 'reports:expenses', 'reports:profit'] },
   { label: 'Activity', to: '/activity', icon: ClipboardList, ownerOnly: true },
   { label: 'Settings', to: '/settings', icon: Settings, ownerOnly: true },
 ]
@@ -190,7 +187,6 @@ function DashboardLayout() {
               <Route path="/late-payments" element={user?.permissions.includes('payments:read') ? <LatePaymentsPage isOwner={user.role === 'owner'} /> : <Navigate to="/" replace />} />
               <Route path="/discounts" element={user?.permissions.some((permission) => ['discounts:read', 'discounts:request', 'discounts:approve'].includes(permission)) ? <DiscountsPage isOwner={user.role === 'owner'} /> : <Navigate to="/" replace />} />
               <Route path="/reports" element={user?.role === 'owner' || user?.permissions.some((permission) => permission.startsWith('reports:')) ? <ReportsPage /> : <Navigate to="/" replace />} />
-              <Route path="/staff" element={user?.role === 'owner' ? <StaffPage /> : <Navigate to="/" replace />} />
               <Route path="/activity" element={user?.role === 'owner' ? <ActivityPage /> : <Navigate to="/" replace />} />
               <Route path="/settings" element={user?.role === 'owner' ? <SettingsPage /> : <Navigate to="/" replace />} />
               {unavailableRoutes.map((path) => <Route key={path} path={path} element={<Navigate to="/" replace />} />)}

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowDownToLine, FileUp, History, Package, Pencil, Plus, Search, SlidersHorizontal, Warehouse } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Archive, ArrowDownToLine, FileUp, FolderPlus, History, Package, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Warehouse } from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Combobox, type ComboboxOption } from '../../components/ui/Combobox'
 import { Modal } from '../../components/ui/Modal'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
@@ -10,6 +10,7 @@ import { useAuth } from '../auth/authContext'
 import { ErrorMessage, Loading, PageHeading } from '../dashboard/DashboardPage'
 import { ProductForm } from './ProductForm'
 import { ProductImportModal, StockHistoryModal, StockMovementModal } from './ProductModals'
+import { seedDemoData } from './demoData'
 import { exportProductsCsv, type ProductCsvRow } from './productCsv'
 import type { Product, ProductCategory, ProductFormValues, ProductMutationPayload } from './productTypes'
 
@@ -71,6 +72,9 @@ export function ProductsPage({ search }: { search: string }) {
   const { user } = useAuth()
   const canManageProducts = user?.canManageProducts ?? false
   const [formOpen, setFormOpen] = useState(false)
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false)
+  const [categoryName, setCategoryName] = useState('')
+  const [demoSeedOpen, setDemoSeedOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<Product | null>(null)
   const [stockProduct, setStockProduct] = useState<Product | null>(null)
@@ -124,6 +128,18 @@ export function ProductsPage({ search }: { search: string }) {
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['categories'] })
+    },
+  })
+  const demoSeed = useMutation({
+    mutationFn: seedDemoData,
+    onSuccess: async (result) => {
+      await Promise.all([
+        invalidateCatalog(),
+        queryClient.invalidateQueries({ queryKey: ['categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['customers'] }),
+      ])
+      setDemoSeedOpen(false)
+      setNotice(`Demo data added: ${result.categories} categories, ${result.products} products with images, ${result.customers} customers.`)
     },
   })
   const archiveProduct = useMutation({
@@ -195,6 +211,16 @@ export function ProductsPage({ search }: { search: string }) {
       createProduct.mutate(formData)
     }
   }
+  const submitCategory = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    createCategory.mutate(categoryName.trim(), {
+      onSuccess: () => {
+        setCategoryName('')
+        setCategoryModalOpen(false)
+        setNotice('Category added.')
+      },
+    })
+  }
 
   const downloadCsv = () => {
     const csv = `\uFEFF${exportProductsCsv(filteredProducts)}`
@@ -252,9 +278,24 @@ export function ProductsPage({ search }: { search: string }) {
                   <button type="button" onClick={() => setImportOpen(true)} className="soft-button inline-flex items-center gap-2">
                     <FileUp size={16} aria-hidden="true" /> Import CSV
                   </button>
+                  <button type="button" onClick={() => {
+                    createCategory.reset()
+                    setCategoryName('')
+                    setCategoryModalOpen(true)
+                  }} className="soft-button inline-flex items-center gap-2">
+                    <FolderPlus size={16} aria-hidden="true" /> Add category
+                  </button>
                   <button type="button" onClick={openNewProduct} className="rounded-2xl bg-[#247BDB] px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">
                     <span className="inline-flex items-center gap-2"><Plus size={16} aria-hidden="true" /> Add product</span>
                   </button>
+                  {user?.role === 'owner' && (
+                    <button type="button" onClick={() => {
+                      demoSeed.reset()
+                      setDemoSeedOpen(true)
+                    }} className="soft-button inline-flex items-center gap-2">
+                      <Sparkles size={16} aria-hidden="true" /> Load sample data
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -372,6 +413,46 @@ export function ProductsPage({ search }: { search: string }) {
           />
         </Modal>
       )}
+
+      <Modal
+        open={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        title="Add category"
+        description="Create a category for organizing products in your catalog."
+        footer={(
+          <div className="flex min-w-0 justify-end gap-3">
+            <button type="button" onClick={() => setCategoryModalOpen(false)} className="soft-button">Cancel</button>
+            <button type="submit" form="category-form" disabled={createCategory.isPending || categoryName.trim().length < 2} className="rounded-2xl bg-[#247BDB] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60">
+              {createCategory.isPending ? 'Saving…' : 'Save category'}
+            </button>
+          </div>
+        )}
+      >
+        <form id="category-form" onSubmit={submitCategory} className="space-y-4">
+          <label htmlFor="category-name" className="block text-sm font-medium text-slate-700">Category name</label>
+          <input id="category-name" autoFocus maxLength={100} minLength={2} required value={categoryName} onChange={(event) => setCategoryName(event.target.value)} className="field-input" placeholder="e.g. Earrings" />
+          {createCategory.isError && <p role="alert" className="text-sm font-medium text-red-700">{createCategory.error.message}</p>}
+        </form>
+      </Modal>
+      <Modal
+        open={demoSeedOpen}
+        onClose={() => {
+          if (!demoSeed.isPending) setDemoSeedOpen(false)
+        }}
+        title="Load sample data"
+        description="Add five clearly labeled demo customers, four demo categories, and eight sample products with generated images and stock. Existing records are left unchanged; matching demo records are skipped."
+        footer={(
+          <div className="flex min-w-0 justify-end gap-3">
+            <button type="button" disabled={demoSeed.isPending} onClick={() => setDemoSeedOpen(false)} className="soft-button disabled:opacity-60">Cancel</button>
+            <button type="button" disabled={demoSeed.isPending} onClick={() => demoSeed.mutate()} className="rounded-2xl bg-[#247BDB] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60">
+              {demoSeed.isPending ? 'Adding sample data…' : 'Add sample data'}
+            </button>
+          </div>
+        )}
+      >
+        {demoSeed.isError && <p role="alert" className="text-sm font-medium text-red-700">{demoSeed.error.message}</p>}
+        {demoSeed.isPending && <p role="status" className="text-sm text-slate-600">Uploading images and saving records. Keep this page open until it finishes.</p>}
+      </Modal>
 
       <Modal
         open={Boolean(archiveTarget)}

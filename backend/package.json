@@ -1,0 +1,24 @@
+{
+  "name": "acceseries-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts --local",
+    "build": "tsc --noEmit",
+    "deploy": "wrangler deploy",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "hono": "^4.7.10",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/node": "^22.10.1",
+    "oxlint": "^1.90.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.101.0"
+  }
+}

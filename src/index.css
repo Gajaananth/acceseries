@@ -1,0 +1,237 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Manrope:wght@500;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0f172a;
+  background: #f7f9fc;
+  font-family: 'DM Sans', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(36, 123, 219, 0.12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(111, 157, 232, 0.14), transparent 24%),
+    #f7f9fc;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Manrope', sans-serif;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  min-width: 0;
+}
+
+.grid > *,
+.flex > * {
+  min-width: 0;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link:hover {
+  background: rgba(36, 123, 219, 0.04);
+  color: #142b45;
+}
+
+.sidebar-link.active {
+  background: linear-gradient(135deg, rgba(36, 123, 219, 0.12), rgba(107, 169, 237, 0.08));
+  border-color: rgba(36, 123, 219, 0.15);
+  color: #142b45;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.soft-button {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.7rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  transition: transform 0.2s ease;
+}
+
+.soft-button:hover {
+  transform: translateY(-1px);
+}
+
+.field-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid #dfeaf7;
+  background: rgba(248, 250, 252, 0.9);
+  border-radius: 1rem;
+  padding: 0.8rem 0.9rem;
+  font-size: 16px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field-input:focus {
+  border-color: #92b8eb;
+  box-shadow: 0 0 0 4px rgba(36, 123, 219, 0.08);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.status-badge.success {
+  background: rgba(21, 155, 114, 0.12);
+  color: #159b72;
+}
+
+.status-badge.warning {
+  background: rgba(229, 163, 59, 0.14);
+  color: #b47000;
+}
+
+.status-badge.danger {
+  background: rgba(220, 85, 85, 0.12);
+  color: #c73f3f;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  aside,
+  header,
+  button {
+    display: none !important;
+  }
+
+  .glass-panel {
+    border: 1px solid #d1d5db;
+    box-shadow: none;
+    backdrop-filter: none;
+    break-inside: avoid;
+  }
+
+  body.invoice-printing > * {
+    visibility: hidden !important;
+  }
+
+  body.invoice-printing .invoice-print,
+  body.invoice-printing .invoice-print * {
+    visibility: visible !important;
+  }
+
+  body.invoice-printing .invoice-print {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body.receipt-printing > * {
+    visibility: hidden !important;
+  }
+
+  body.receipt-printing .receipt-print,
+  body.receipt-printing .receipt-print * {
+    visibility: visible !important;
+  }
+
+  body.receipt-printing .receipt-print {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body.invoice-printing .invoice-print > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  body.receipt-printing .receipt-print > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  @page thermal {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+
+  .thermal-invoice {
+    page: thermal;
+    width: 74mm !important;
+    font-size: 10px !important;
+  }
+
+  .thermal-receipt {
+    page: thermal;
+    width: 74mm !important;
+    font-size: 10px !important;
+  }
+
+  .not-print {
+    display: none !important;
+  }
+}

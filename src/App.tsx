@@ -148,9 +148,6 @@ function DashboardLayout() {
           <div className={`mt-auto min-w-0 rounded-3xl border border-slate-200 bg-slate-50 p-4 ${sidebarCollapsed ? 'md:flex md:flex-col md:items-center md:p-2' : ''}`}>
             <p className={`truncate text-sm font-semibold text-slate-900 ${sidebarCollapsed ? 'md:hidden' : ''}`}>{user?.name || user?.email}</p>
             <p className={`truncate text-xs text-slate-500 ${sidebarCollapsed ? 'md:hidden' : ''}`}>{user?.email}</p>
-            <button type="button" title={sidebarCollapsed ? 'Sign out' : undefined} onClick={handleLogout} className={`mt-4 inline-flex min-w-0 items-center gap-2 text-sm font-semibold text-red-600 hover:text-red-700 ${sidebarCollapsed ? 'md:mt-2 md:justify-center' : ''}`}>
-              <LogOut size={16} /><span className={sidebarCollapsed ? 'md:sr-only' : ''}>Sign out</span>
-            </button>
           </div>
         </aside>
         <main className="min-w-0 flex-1">
@@ -167,7 +164,18 @@ function DashboardLayout() {
                 <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search customers and products" placeholder="Search customers and products…" className="w-full max-w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3 pl-11 pr-4 text-base text-slate-700 outline-none focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100 md:text-sm" />
               </label>
-              <NotificationMenu />
+              <div className="flex shrink-0 items-center justify-end gap-2">
+                <NotificationMenu />
+                <button
+                  type="button"
+                  aria-label="Sign out"
+                  title="Sign out"
+                  onClick={handleLogout}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-100"
+                >
+                  <LogOut size={19} />
+                </button>
+              </div>
             </div>
           </header>
           <div className="p-4 md:p-8">

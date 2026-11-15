@@ -440,7 +440,7 @@ export function ProductsPage({ search }: { search: string }) {
           if (!demoSeed.isPending) setDemoSeedOpen(false)
         }}
         title="Load sample data"
-        description="Add five synthetic customers, four categories, eight illustrated products, two sales (including an overdue installment agreement), a partial payment, and discount requests. Existing records are left unchanged; demo records are reused on retries."
+        description="Add five synthetic customers, five electronics categories, ten illustrated products, two sales (including an overdue installment agreement), a partial payment, and discount requests. Existing records are left unchanged; demo records are reused on retries."
         footer={(
           <div className="flex min-w-0 justify-end gap-3">
             <button type="button" disabled={demoSeed.isPending} onClick={() => setDemoSeedOpen(false)} className="soft-button disabled:opacity-60">Cancel</button>

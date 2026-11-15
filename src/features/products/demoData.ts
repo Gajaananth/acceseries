@@ -12,14 +12,14 @@ type DemoProduct = {
   name: string
   sku: string
   category: string
-  kind: 'earrings' | 'necklace' | 'bracelet' | 'hair'
+  kind: 'earbuds' | 'charger' | 'cable' | 'power_bank' | 'adapter'
   color: string
   cost: number
   price: number
   quantity: number
 }
 
-const demoCategoryNames = ['Demo Earrings', 'Demo Necklaces', 'Demo Bracelets', 'Demo Hair Accessories']
+const demoCategoryNames = ['Headphones & Earbuds', 'Chargers', 'Cables', 'Power Banks', 'Adapters & Hubs']
 
 const demoCustomers: DemoCustomer[] = [
   { full_name: 'Demo Customer 01', phone: '0000000101' },
@@ -30,14 +30,16 @@ const demoCustomers: DemoCustomer[] = [
 ]
 
 const demoProducts: DemoProduct[] = [
-  { name: 'Demo Gold Hoop Earrings', sku: 'DEMO-ER-001', category: 'Demo Earrings', kind: 'earrings', color: '#b77932', cost: 120000, price: 180000, quantity: 18 },
-  { name: 'Demo Pearl Drop Earrings', sku: 'DEMO-ER-002', category: 'Demo Earrings', kind: 'earrings', color: '#8574a8', cost: 155000, price: 240000, quantity: 7 },
-  { name: 'Demo Silver Pendant Necklace', sku: 'DEMO-NE-001', category: 'Demo Necklaces', kind: 'necklace', color: '#708090', cost: 210000, price: 325000, quantity: 12 },
-  { name: 'Demo Layered Chain Necklace', sku: 'DEMO-NE-002', category: 'Demo Necklaces', kind: 'necklace', color: '#b77932', cost: 265000, price: 390000, quantity: 4 },
-  { name: 'Demo Charm Bracelet', sku: 'DEMO-BR-001', category: 'Demo Bracelets', kind: 'bracelet', color: '#bd7191', cost: 95000, price: 155000, quantity: 15 },
-  { name: 'Demo Beaded Bracelet', sku: 'DEMO-BR-002', category: 'Demo Bracelets', kind: 'bracelet', color: '#658a79', cost: 70000, price: 125000, quantity: 3 },
-  { name: 'Demo Pearl Hair Clip', sku: 'DEMO-HA-001', category: 'Demo Hair Accessories', kind: 'hair', color: '#8574a8', cost: 45000, price: 85000, quantity: 20 },
-  { name: 'Demo Satin Hair Barrette', sku: 'DEMO-HA-002', category: 'Demo Hair Accessories', kind: 'hair', color: '#bd7191', cost: 55000, price: 99000, quantity: 9 },
+  { name: 'Demo Wireless Bluetooth Headset', sku: 'DEMO-AU-001', category: 'Headphones & Earbuds', kind: 'earbuds', color: '#247BDB', cost: 450000, price: 690000, quantity: 18 },
+  { name: 'Demo USB-C Wired Earphones', sku: 'DEMO-AU-002', category: 'Headphones & Earbuds', kind: 'earbuds', color: '#68778A', cost: 180000, price: 295000, quantity: 7 },
+  { name: 'Demo 20W USB-C Wall Charger', sku: 'DEMO-CH-001', category: 'Chargers', kind: 'charger', color: '#22A06B', cost: 220000, price: 350000, quantity: 12 },
+  { name: 'Demo 65W Laptop Charger', sku: 'DEMO-CH-002', category: 'Chargers', kind: 'charger', color: '#68778A', cost: 650000, price: 950000, quantity: 4 },
+  { name: 'Demo Braided USB-C Cable 1m', sku: 'DEMO-CB-001', category: 'Cables', kind: 'cable', color: '#8574A8', cost: 80000, price: 145000, quantity: 15 },
+  { name: 'Demo USB-A to USB-C Cable', sku: 'DEMO-CB-002', category: 'Cables', kind: 'cable', color: '#BD7191', cost: 55000, price: 99000, quantity: 3 },
+  { name: 'Demo 10000mAh Power Bank', sku: 'DEMO-PB-001', category: 'Power Banks', kind: 'power_bank', color: '#22A06B', cost: 720000, price: 1050000, quantity: 20 },
+  { name: 'Demo 20000mAh Power Bank', sku: 'DEMO-PB-002', category: 'Power Banks', kind: 'power_bank', color: '#247BDB', cost: 1100000, price: 1590000, quantity: 9 },
+  { name: 'Demo 6-in-1 USB-C Hub', sku: 'DEMO-AD-001', category: 'Adapters & Hubs', kind: 'adapter', color: '#8574A8', cost: 580000, price: 890000, quantity: 11 },
+  { name: 'Demo USB-C to HDMI Adapter', sku: 'DEMO-AD-002', category: 'Adapters & Hubs', kind: 'adapter', color: '#BD7191', cost: 250000, price: 399000, quantity: 6 },
 ]
 
 type DemoSeedResult = {
@@ -60,20 +62,22 @@ function escapeXml(value: string): string {
 }
 
 function demoImageSvg(product: DemoProduct): string {
-  const jewelry = product.kind === 'earrings'
-    ? '<circle cx="238" cy="197" r="37" fill="none" stroke="currentColor" stroke-width="12"/><circle cx="362" cy="197" r="37" fill="none" stroke="currentColor" stroke-width="12"/><path d="M238 235v58m124-58v58" stroke="currentColor" stroke-width="10"/><circle cx="238" cy="310" r="18" fill="currentColor"/><circle cx="362" cy="310" r="18" fill="currentColor"/>'
-    : product.kind === 'necklace'
-      ? '<path d="M188 150c20 112 205 112 224 0" fill="none" stroke="currentColor" stroke-width="12"/><path d="M300 245v34" stroke="currentColor" stroke-width="10"/><path d="m300 272 27 30-27 34-27-34z" fill="currentColor"/>'
-      : product.kind === 'bracelet'
-        ? '<ellipse cx="300" cy="235" rx="124" ry="78" fill="none" stroke="currentColor" stroke-width="18"/><circle cx="300" cy="157" r="18" fill="currentColor"/><circle cx="424" cy="235" r="18" fill="currentColor"/><circle cx="300" cy="313" r="18" fill="currentColor"/><circle cx="176" cy="235" r="18" fill="currentColor"/>'
-        : '<rect x="194" y="185" width="212" height="84" rx="42" fill="none" stroke="currentColor" stroke-width="14"/><path d="M224 227h152" stroke="currentColor" stroke-width="11"/><circle cx="248" cy="227" r="10" fill="currentColor"/><circle cx="300" cy="227" r="10" fill="currentColor"/><circle cx="352" cy="227" r="10" fill="currentColor"/>'
+  const illustration = product.kind === 'earbuds'
+    ? '<path d="M228 176a48 48 0 0 1 96 0v86h-32v-78a16 16 0 0 0-32 0v78h-32zM345 176a48 48 0 0 1 96 0v86h-32v-78a16 16 0 0 0-32 0v78h-32z" fill="currentColor"/><rect x="254" y="270" width="44" height="66" rx="22" fill="currentColor"/><rect x="371" y="270" width="44" height="66" rx="22" fill="currentColor"/>'
+    : product.kind === 'charger'
+      ? '<rect x="228" y="171" width="144" height="150" rx="28" fill="currentColor"/><path d="M267 171v-38m66 38v-38" stroke="currentColor" stroke-width="16"/><rect x="274" y="245" width="52" height="15" rx="7" fill="#fff"/><path d="M383 216h35" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>'
+      : product.kind === 'cable'
+        ? '<path d="M199 204c35-66 94-66 101 0s-76 68-87 8 73-98 132-28c62 74-8 143-75 102" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round"/><rect x="175" y="184" width="39" height="40" rx="9" fill="currentColor"/><rect x="250" y="276" width="42" height="34" rx="9" fill="currentColor"/><path d="M186 184v-14m17 14v-14m58 120v18m18-18v18" stroke="currentColor" stroke-width="8"/>'
+        : product.kind === 'power_bank'
+          ? '<rect x="205" y="165" width="190" height="158" rx="30" fill="currentColor"/><rect x="257" y="199" width="85" height="44" rx="9" fill="#fff"/><path d="m307 204-22 24h18l-7 12 27-27h-19z" fill="currentColor"/><circle cx="251" cy="278" r="7" fill="#fff"/><circle cx="278" cy="278" r="7" fill="#fff"/><circle cx="305" cy="278" r="7" fill="#fff"/><path d="M392 220h18" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>'
+          : '<rect x="202" y="202" width="196" height="74" rx="30" fill="currentColor"/><path d="M300 239c-16-80 32-87 69-87" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round"/><rect x="356" y="136" width="50" height="31" rx="8" fill="currentColor"/><rect x="226" y="225" width="22" height="26" rx="4" fill="#fff"/><rect x="267" y="225" width="22" height="26" rx="4" fill="#fff"/><rect x="308" y="225" width="22" height="26" rx="4" fill="#fff"/><rect x="349" y="225" width="22" height="26" rx="4" fill="#fff"/>'
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
     <rect width="600" height="450" rx="28" fill="#f7f3ed"/>
-    <circle cx="300" cy="220" r="150" fill="${product.color}" opacity=".12"/>
-    <g color="${product.color}" stroke-linecap="round" stroke-linejoin="round">${jewelry}</g>
-    <text x="300" y="390" text-anchor="middle" fill="#334155" font-family="Arial, sans-serif" font-size="21" font-weight="600">${escapeXml(product.name)}</text>
-    <text x="300" y="420" text-anchor="middle" fill="#64748b" font-family="Arial, sans-serif" font-size="13" letter-spacing="3">SAMPLE PRODUCT</text>
+    <circle cx="300" cy="230" r="150" fill="${product.color}" opacity=".12"/>
+    <g color="${product.color}" stroke-linecap="round" stroke-linejoin="round">${illustration}</g>
+    <text x="300" y="385" text-anchor="middle" fill="#334155" font-family="Arial, sans-serif" font-size="19" font-weight="600">${escapeXml(product.name)}</text>
+    <text x="300" y="415" text-anchor="middle" fill="#64748b" font-family="Arial, sans-serif" font-size="13" letter-spacing="3">ELECTRONICS ACCESSORY</text>
   </svg>`
 }
 
@@ -191,8 +195,8 @@ export async function seedDemoData(): Promise<DemoSeedResult> {
   const sampleProductBySku = new Map(seededProducts.map((product) => [product.sku.toLowerCase(), product]))
   const firstCustomer = sampleCustomerByPhone.get(demoCustomers[0].phone)
   const secondCustomer = sampleCustomerByPhone.get(demoCustomers[1].phone)
-  const cashProduct = sampleProductBySku.get('demo-er-001')
-  const installmentProduct = sampleProductBySku.get('demo-ne-001')
+  const cashProduct = sampleProductBySku.get('demo-au-001')
+  const installmentProduct = sampleProductBySku.get('demo-pb-001')
   if (!firstCustomer || !secondCustomer || !cashProduct || !installmentProduct) {
     throw new Error('Sample customers or products could not be reloaded.')
   }

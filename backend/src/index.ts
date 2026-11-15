@@ -510,12 +510,14 @@ app.use('/api/*', async (c, next) => {
     const permission = row.permissions as { key?: string } | null
     return permission?.key
   }).filter((key): key is string => typeof key === 'string'))
-  for (const row of permissionOverrides.data ?? []) {
-    const permission = row.permissions as { key?: string } | null
-    const key = permission?.key
-    if (typeof key !== 'string') continue
-    if (row.granted) permissionKeys.add(key)
-    else permissionKeys.delete(key)
+  if (role !== 'owner') {
+    for (const row of permissionOverrides.data ?? []) {
+      const permission = row.permissions as { key?: string } | null
+      const key = permission?.key
+      if (typeof key !== 'string') continue
+      if (row.granted) permissionKeys.add(key)
+      else permissionKeys.delete(key)
+    }
   }
   const effectivePermissions = [...permissionKeys]
   const apiUser: ApiUser = {

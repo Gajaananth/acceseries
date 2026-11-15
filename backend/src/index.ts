@@ -828,7 +828,13 @@ app.post('/api/customers', async (c) => {
     .single()
   if (error) {
     console.error('Customer insert failed', error.message)
-    return c.json({ error: error.code === '23505' ? 'A customer with this phone number already exists.' : 'Unable to save customer.' }, error.code === '23505' ? 409 : 502)
+    if (error.code === '23505') {
+      return c.json({ error: 'A customer with this phone number already exists.' }, 409)
+    }
+    if (error.code === '42501') {
+      return c.json({ error: 'You do not have permission to create customers.' }, 403)
+    }
+    return c.json({ error: 'Unable to save customer.' }, 502)
   }
   return c.json({ ...data, status: 'active', current_balance: '0.00' }, 201)
 })

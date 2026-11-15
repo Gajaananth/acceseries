@@ -1,0 +1,22 @@
+grant select on table
+  public.profiles,
+  public.roles,
+  public.permissions,
+  public.role_permissions,
+  public.user_permissions,
+  public.customers,
+  public.categories,
+  public.products,
+  public.stock_movements,
+  public.customer_balance_snapshots,
+  public.sales,
+  public.sale_items,
+  public.agreements,
+  public.agreement_items,
+  public.agreement_schedule,
+  public.installments,
+  public.payments,
+  public.payment_allocations,
+  public.payment_methods,
+  public.application_settings
+to authenticated;

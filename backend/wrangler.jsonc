@@ -11,6 +11,7 @@
     "APP_NAME": "Acceseries",
     "APP_ENV": "production",
     "SUPABASE_URL": "https://nojijyfwgbeqlevqcgle.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_WRHX0q9YDDyI5hCAN45lnw_97ztJZ7y",
     "ALLOWED_ORIGINS": "https://acceseries.vercel.app"
   }
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowDownToLine, FileUp, FolderPlus, History, Package, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Warehouse } from 'lucide-react'
+import { Archive, ArrowDownToLine, FileUp, FolderPlus, History, Package, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Trash2, Warehouse } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { Combobox, type ComboboxOption } from '../../components/ui/Combobox'
 import { Modal } from '../../components/ui/Modal'
@@ -77,6 +77,7 @@ export function ProductsPage({ search }: { search: string }) {
   const [demoSeedOpen, setDemoSeedOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<Product | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
   const [stockProduct, setStockProduct] = useState<Product | null>(null)
   const [historyProduct, setHistoryProduct] = useState<Product | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -149,6 +150,19 @@ export function ProductsPage({ search }: { search: string }) {
       await invalidateCatalog()
       setArchiveTarget(null)
       setNotice('Product archived.')
+    },
+  })
+  const deleteProduct = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest<ProductWriteResult>(`/api/products/${id}`, { method: 'DELETE' }),
+    onSuccess: async (result) => {
+      await Promise.all([
+        invalidateCatalog(),
+        queryClient.invalidateQueries({ queryKey: ['sales'] }),
+        queryClient.invalidateQueries({ queryKey: ['agreements'] }),
+      ])
+      setDeleteTarget(null)
+      setNotice(result.warning ?? 'Product permanently deleted.')
     },
   })
   const stockMovement = useMutation({
@@ -378,6 +392,12 @@ export function ProductsPage({ search }: { search: string }) {
                           </button>
                         </>
                       )}
+                      <button type="button" onClick={() => {
+                        deleteProduct.reset()
+                        setDeleteTarget(product)
+                      }} className="soft-button inline-flex items-center gap-1.5 px-3 py-2 text-xs text-red-700">
+                        <Trash2 size={14} aria-hidden="true" /> Delete
+                      </button>
                     </>
                   )}
                 </div>
@@ -469,6 +489,26 @@ export function ProductsPage({ search }: { search: string }) {
         )}
       >
         {archiveProduct.isError && <p role="alert" className="text-sm font-medium text-red-700">{archiveProduct.error.message}</p>}
+      </Modal>
+      <Modal
+        open={Boolean(deleteTarget)}
+        onClose={() => {
+          if (!deleteProduct.isPending) setDeleteTarget(null)
+        }}
+        title="Delete product permanently"
+        description={deleteTarget
+          ? `Permanently delete ${deleteTarget.name} from the catalog? Sales and agreement records will keep their saved product details, and inventory history will be retained as an audit record. This cannot be undone.`
+          : undefined}
+        footer={(
+          <div className="flex min-w-0 justify-end gap-3">
+            <button type="button" disabled={deleteProduct.isPending} onClick={() => setDeleteTarget(null)} className="soft-button disabled:opacity-60">Cancel</button>
+            <button type="button" disabled={deleteProduct.isPending || !deleteTarget} onClick={() => deleteTarget && deleteProduct.mutate(deleteTarget.id)} className="rounded-2xl bg-red-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60">
+              {deleteProduct.isPending ? 'Deleting…' : 'Delete permanently'}
+            </button>
+          </div>
+        )}
+      >
+        {deleteProduct.isError && <p role="alert" className="text-sm font-medium text-red-700">{deleteProduct.error.message}</p>}
       </Modal>
       {stockProduct && (
         <StockMovementModal

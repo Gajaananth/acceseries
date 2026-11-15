@@ -418,11 +418,11 @@ async function uploadProductImage(supabase: SupabaseClient, file: File): Promise
   return { path }
 }
 
-async function removeProductImage(supabase: SupabaseClient, path: string): Promise<string | null> {
+async function removeProductImage(supabase: SupabaseClient, path: string, warning?: string): Promise<string | null> {
   const { error } = await supabase.storage.from('product-images').remove([path])
   if (!error) return null
   console.error('Product image cleanup failed', error.message)
-  return 'Product details were saved, but an unused image could not be removed from storage.'
+  return warning ?? 'Product details were saved, but an unused image could not be removed from storage.'
 }
 
 function productWriteError(error: { code?: string; message?: string }): { error: string; status: 400 | 403 | 404 | 409 | 502 } {
@@ -912,6 +912,42 @@ app.post('/api/products/:id/archive', async (c) => {
     return c.json({ error: failure.error }, failure.status)
   }
   return c.json({ id: productId.data })
+})
+
+app.delete('/api/products/:id', async (c) => {
+  if (!c.get('canManageProducts')) return c.json({ error: 'You do not have permission to manage products.' }, 403)
+  const productId = z.string().uuid().safeParse(c.req.param('id'))
+  if (!productId.success) return c.json({ error: 'Product ID is invalid.' }, 400)
+
+  const supabase = c.get('supabase')
+  const { data, error } = await supabase.rpc('delete_product', { p_product_id: productId.data })
+  if (error) {
+    if (error.code === '23503') {
+      return c.json({ error: 'This product has protected references and cannot be permanently deleted. Archive it instead.' }, 409)
+    }
+    if (error.code === '42501') return c.json({ error: 'You do not have permission to manage products.' }, 403)
+    if (error.code === 'P0002') return c.json({ error: 'Product not found.' }, 404)
+    console.error('Product deletion failed', error.message ?? error.code ?? 'Unknown error')
+    return c.json({ error: 'Unable to delete product.' }, 502)
+  }
+
+  const deletedProduct = z.object({
+    id: z.string().uuid(),
+    image_path: z.string().nullable(),
+  }).safeParse(data)
+  if (!deletedProduct.success) {
+    console.error('Product deletion returned an invalid response')
+    return c.json({ error: 'The product was deleted, but image cleanup could not be completed.' }, 502)
+  }
+
+  const warning = deletedProduct.data.image_path
+    ? await removeProductImage(
+      supabase,
+      deletedProduct.data.image_path,
+      'Product was deleted, but its image could not be removed from storage.',
+    )
+    : null
+  return c.json({ id: deletedProduct.data.id, warning })
 })
 
 app.get('/api/products/:id/stock-movements', async (c) => {

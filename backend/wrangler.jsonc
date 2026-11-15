@@ -8,6 +8,9 @@
     "crons": ["5 0 * * *"]
   },
   "vars": {
-    "APP_NAME": "Acceseries"
+    "APP_NAME": "Acceseries",
+    "APP_ENV": "production",
+    "SUPABASE_URL": "https://nojijyfwgbeqlevqcgle.supabase.co",
+    "ALLOWED_ORIGINS": "https://acceseries.vercel.app"
   }
 }
